@@ -2,209 +2,203 @@ package kafka
 
 import (
 	"context"
-	"fmt"
+	//	"encoding/json"
+	"github.com/TIBCOSoftware/flogo-lib/core/action"
+	"github.com/TIBCOSoftware/flogo-lib/core/trigger"
+	"github.com/TIBCOSoftware/flogo-lib/logger"
+	"github.com/optiopay/kafka"
+	"github.com/optiopay/kafka/proto"
 	"strconv"
-	"strings"
-	"time"
-
-	"github.com/Shopify/sarama"
-	"github.com/project-flogo/core/data/metadata"
-	"github.com/project-flogo/core/support/log"
-	"github.com/project-flogo/core/trigger"
+	//	"bytes"
 )
 
-var triggerMd = trigger.NewMetadata(&Settings{}, &HandlerSettings{}, &Output{})
+// log is the default package logger
+var log = logger.GetLogger("trigger-jvanderl-kafka")
+var broker kafka.Broker
 
-func init() {
-	_ = trigger.Register(&Trigger{}, &Factory{})
+// Subscription scructure
+type kafkaSubscription struct {
+	topic			string
+	partition int32
+	consumer	kafka.Consumer
 }
 
-// Factory is a kafka trigger factory
-type Factory struct {
+// KafkaTrigger is simple Kafka trigger
+type kafkaTrigger struct {
+	metadata        *trigger.Metadata
+	runner          action.Runner
+	config          *trigger.Config
+	topicToActionId map[string]string
 }
 
-// Metadata implements trigger.Factory.Metadata
-func (*Factory) Metadata() *trigger.Metadata {
-	return triggerMd
+//NewFactory create a new Trigger factory
+func NewFactory(md *trigger.Metadata) trigger.Factory {
+	return &kafkaFactory{metadata: md}
 }
 
-// New implements trigger.Factory.New
-func (*Factory) New(config *trigger.Config) (trigger.Trigger, error) {
-	s := &Settings{}
-	err := metadata.MapToStruct(config.Settings, s, true)
+// kafkaFactory Trigger factory
+type kafkaFactory struct {
+	metadata *trigger.Metadata
+}
+
+//New Creates a new trigger instance for a given id
+func (t *kafkaFactory) New(config *trigger.Config) trigger.Trigger {
+	return &kafkaTrigger{metadata: t.metadata, config: config}
+}
+
+// Metadata implements trigger.Trigger.Metadata
+func (t *kafkaTrigger) Metadata() *trigger.Metadata {
+	return t.metadata
+}
+
+// Init implements ext.Trigger.Init
+func (t *kafkaTrigger) Init(runner action.Runner) {
+	t.runner = runner
+}
+
+// Start implements ext.Trigger.Start
+func (t *kafkaTrigger) Start() error {
+
+	ifServers := []string{t.config.GetSetting("server")}
+	ifConfigID := t.config.GetSetting("configid")
+	conf := kafka.NewBrokerConf(ifConfigID)
+	conf.AllowTopicCreation = true
+
+	// connect to kafka cluster
+	log.Infof("Connecting to Kafka server(s): %s", ifServers)
+	broker, err := kafka.Dial(ifServers, conf)
 	if err != nil {
-		return nil, err
+		log.Errorf("cannot connect to kafka cluster: %s", err)
+		return err
 	}
+	defer broker.Close()
+	log.Debug("Connected to Kafka server")
 
-	return &Trigger{settings: s}, nil
-}
-
-// Trigger is a kafka trigger
-type Trigger struct {
-	settings      *Settings
-	conn          *KafkaConnection
-	kafkaHandlers []*Handler
-}
-
-// Initialize initializes the trigger
-func (t *Trigger) Initialize(ctx trigger.InitContext) error {
-
-	var err error
-	t.conn, err = getKafkaConnection(ctx.Logger(), t.settings)
-
-	for _, handler := range ctx.GetHandlers() {
-		kafkaHandler, err := NewKafkaHandler(ctx.Logger(), handler, t.conn.Connection())
-		if err != nil {
-			return err
+	//subscribe to topics
+	var Subscriptions []kafkaSubscription
+	t.topicToActionId = make(map[string]string)
+	for _, handlerCfg := range t.config.Handlers {
+		tTopic := handlerCfg.GetSetting("topic")
+		//Set default partition to 0
+		tPartition := int32(0)
+		sPartition, err := strconv.ParseInt(handlerCfg.GetSetting("partition"), 10, 32)
+		if err == nil {
+			tPartition = int32(sPartition)
 		}
-		t.kafkaHandlers = append(t.kafkaHandlers, kafkaHandler)
+		log.Infof("Regestering Action [%s] for topic [%s], partition [%d]", handlerCfg.ActionId, tTopic, tPartition)
+		t.topicToActionId[tTopic] = handlerCfg.ActionId
+		conf2 := kafka.NewConsumerConf(tTopic, tPartition)
+		conf2.StartOffset = kafka.StartOffsetNewest
+		log.Infof("subscribing to topic [%s]", tTopic)
+		Consumer, err := broker.Consumer(conf2)
+		if err != nil {
+			log.Errorf("cannot create kafka consumer for %s:%d: %s", tTopic, tPartition, err)
+		}
+		subscription := kafkaSubscription{tTopic, tPartition, Consumer}
+		Subscriptions = append(Subscriptions, subscription)
 	}
-
-	return err
-}
-
-// Start starts the kafka trigger
-func (t *Trigger) Start() error {
-
-	for _, handler := range t.kafkaHandlers {
-		_ = handler.Start()
-	}
+	// run the message receiver
+	go RunReceiver(t, Subscriptions )
 
 	return nil
 }
 
 // Stop implements ext.Trigger.Stop
-func (t *Trigger) Stop() error {
+func (t *kafkaTrigger) Stop() error {
 
-	for _, handler := range t.kafkaHandlers {
-		_ = handler.Stop()
-	}
+	broker.Close()
 
-	_ = t.conn.Stop()
 	return nil
 }
 
-// NewKafkaHandler creates a new kafka handler to handle a topic
-func NewKafkaHandler(logger log.Logger, handler trigger.Handler, consumer sarama.Consumer) (*Handler, error) {
+// RunAction starts a new Process Instance
+func (t *kafkaTrigger) RunAction(actionId string, payload string, topic string, partition int32) {
 
-	kafkaHandler := &Handler{logger: logger, shutdown: make(chan struct{}), handler: handler}
+	log.Debug("Starting new Process Instance")
+	log.Debugf("Action Id: %s", actionId)
+	log.Debugf("Payload: %s", payload)
+	log.Debugf("Actual Topic: %s ", topic)
 
-	handlerSetting := &HandlerSettings{}
-	err := metadata.MapToStruct(handler.Settings(), handlerSetting, true)
+	req := t.constructStartRequest(payload, topic)
+
+	startAttrs, _ := t.metadata.OutputsToAttrs(req.Data, false)
+
+	action := action.Get(actionId)
+
+	context := trigger.NewContext(context.Background(), startAttrs)
+
+	_, replyData, err := t.runner.Run(context, action, actionId, nil)
 	if err != nil {
-		return nil, err
+		log.Error(err)
 	}
 
-	if handlerSetting.Topic == "" {
-		return nil, fmt.Errorf("topic string was not provided for handler: [%s]", handler)
-	}
+	log.Debugf("Ran action: [%s]", actionId)
+	log.Debugf("Reply data: [%s]", replyData)
 
-	logger.Debugf("Subscribing to topic [%s]", handlerSetting.Topic)
-
-	offset := sarama.OffsetNewest
-
-	//offset
-	if handlerSetting.Offset >= 0 {
-		offset = handlerSetting.Offset
-	}
-
-	var partitions []int32
-
-	validPartitions, err := consumer.Partitions(handlerSetting.Topic)
-	if err != nil {
-		return nil, err
-	}
-	logger.Debugf("Valid partitions for topic [%s] detected as: [%v]", handlerSetting.Topic, validPartitions)
-
-	if handlerSetting.Partitions != "" {
-		parts := strings.Split(handlerSetting.Partitions, ",")
-		for _, p := range parts {
-			n, err := strconv.Atoi(p)
-			if err == nil {
-				for _, validPartition := range validPartitions {
-					if int32(n) == validPartition {
-						partitions = append(partitions, int32(n))
-						break
-					}
-					logger.Errorf("Configured partition [%d] on topic [%s] does not exist and will not be subscribed", n, handlerSetting.Topic)
-				}
-			} else {
-				logger.Warnf("Partition [%s] specified for handler [%s] is not a valid number and was discarded", p, handler)
-			}
-		}
-	} else {
-		partitions = validPartitions
-	}
-
-	for _, partition := range partitions {
-		logger.Debugf("Creating PartitionConsumer for partition: [%s:%d]", handlerSetting.Topic, partition)
-		partitionConsumer, err := consumer.ConsumePartition(handlerSetting.Topic, partition, offset)
-		if err != nil {
-			logger.Errorf("Creating PartitionConsumer for valid partition: [%s:%d] failed for reason: %s", handlerSetting.Topic, partition, err)
-			return nil, err
-		}
-		kafkaHandler.consumers = append(kafkaHandler.consumers, partitionConsumer)
-	}
-
-	return kafkaHandler, nil
 }
 
-// Handler is a kafka topic handler
-type Handler struct {
-	shutdown  chan struct{}
-	logger    log.Logger
-	handler   trigger.Handler
-	consumers []sarama.PartitionConsumer
+func (t *kafkaTrigger) publishMessage(topic string, partition int32, message string) {
+
+	log.Debugf("ReplyTo topic: %s", topic)
+	log.Debugf("Publishing message: %s", message)
+
+	producer := broker.Producer(kafka.NewProducerConf())
+
+	msg := &proto.Message{Value: []byte(message)}
+
+	log.Info("Sending message to Kafka server")
+	resp, err := producer.Produce(topic, partition, msg)
+
+	if err != nil {
+		log.Errorf("Error sending message to Kafka broker: %s", err)
+	}
+
+	log.Debugf("Response: %s", resp)
+	log.Debug("Message sent succesfully")
 }
 
-func (h *Handler) consumePartition(consumer sarama.PartitionConsumer) {
+func (t *kafkaTrigger) constructStartRequest(message string, topic string) *StartRequest {
+
+	//TODO how to handle reply to, reply feature
+	req := &StartRequest{}
+	data := make(map[string]interface{})
+	data["message"] = message
+	req.Data = data
+	return req
+}
+
+// StartRequest describes a request for starting a ProcessInstance
+type StartRequest struct {
+	ProcessURI  string                 `json:"flowUri"`
+	Data        map[string]interface{} `json:"data"`
+	ReplyTo     string                 `json:"replyTo"`
+}
+
+func convert(b []byte) string {
+	n := len(b)
+	return string(b[:n])
+}
+
+func RunReceiver(t *kafkaTrigger, Subscriptions []kafkaSubscription) error {
 	for {
-		select {
-		case err := <-consumer.Errors():
-			if err == nil {
-				//was shutdown
-				return
-			}
-			time.Sleep(time.Millisecond * 100)
-		case <-h.shutdown:
-			return
-		case msg := <-consumer.Messages():
-
-			if h.logger.DebugEnabled() {
-				h.logger.Debugf("Kafka subscriber triggering action from topic [%s] on partition [%d] with key [%s] at offset [%d]",
-					msg.Topic, msg.Partition, msg.Key, msg.Offset)
-
-				h.logger.Debugf("Kafka message: '%s'", string(msg.Value))
-			}
-
-			out := &Output{}
-			out.Message = string(msg.Value)
-
-			_, err := h.handler.Handle(context.Background(), out)
+		for _, subscription := range Subscriptions {
+			msg, err := subscription.consumer.Consume()
 			if err != nil {
-				h.logger.Errorf("Run action for handler [%s] failed for reason [%s] message lost", h.handler.Name(), err)
+				if err != kafka.ErrNoData {
+					log.Errorf("cannot consume %q topic message: %s", subscription.topic, err)
+				}
+				break
+			}
+			message := convert(msg.Value)
+			log.Infof("Received message: %d on topic '%s', partition %d [%s]", msg.Offset, subscription.topic, subscription.partition, message)
+			actionId, found := t.topicToActionId[subscription.topic]
+			if found {
+				log.Debugf("Found actionId: %s", actionId)
+				t.RunAction(actionId, message, subscription.topic, subscription.partition)
+			} else {
+				log.Debug("actionId not found")
 			}
 		}
-	}
-}
-
-// Start starts the handler
-func (h *Handler) Start() error {
-
-	for _, consumer := range h.consumers {
-		go h.consumePartition(consumer)
-	}
-
-	return nil
-}
-
-// Stop stops the handler
-func (h *Handler) Stop() error {
-
-	close(h.shutdown)
-
-	for _, consumer := range h.consumers {
-		_ = consumer.Close()
 	}
 	return nil
 }
