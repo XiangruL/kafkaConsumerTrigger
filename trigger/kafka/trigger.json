@@ -1,59 +1,38 @@
 {
-  "name": "flogo-kafka-consumer",
+  "name": "kafka",
   "type": "flogo:trigger",
-  "ref": "github.com/XiangruL/kafkaConsumerTrigger/trigger/kafka",
-  "version": "0.9.0",
-  "title": "Receive Kafka Messages",
-  "author": "Xiangru Liang <xliang@wayfair.com>",
-  "description": "Simple Kafka Trigger",
-  "homepage": "https://github.com/XiangruL/kafkaConsumerTrigger/tree/master/trigger/kafka",
-  "settings": [
+  "ref": "github.com/jvanderl/flogo-components/trigger/kafka",
+  "version": "0.0.1",
+  "title": "Receive Kafka Message",
+  "description": "Kafka Topic Subscriber",
+  "author": "Jan van der Lugt <jvanderl@tibco.com>",
+  "homepage": "https://github.com/jvanderl/flogo-components/tree/master/trigger/kafka",
+  "settings":[
     {
-      "name": "brokerUrls",
-      "type": "string",
-      "description": "The Kafka cluster to connect to"
+      "name": "server",
+      "type": "string"
     },
     {
-      "name": "user",
-      "type": "string",
-      "description": "If connecting to a SASL enabled port, the user id to use for authentication"
-    },
+      "name": "configid",
+      "type": "string"
+    }
+  ],
+  "output": [
     {
-      "name": "password",
-      "type": "string",
-      "description": "If connecting to a SASL enabled port, the password to use for authentication"
-    },
-    {
-      "name": "trustStore",
-      "type": "string",
-      "description": "If connecting to a TLS secured port, the directory containing the certificates representing the trust chain for the connection. This is usually just the CACert used to sign the server's certificate"
+      "name": "message",
+      "type": "string"
     }
   ],
   "handler": {
     "settings": [
       {
         "name": "topic",
-        "type": "string",
-        "required": "true",
-        "description": "The Kafka topic on which to listen for messages"
+        "type": "string"
       },
       {
-        "name": "partitions",
-        "type": "string",
-        "description": "The specific partitions to consume messages from"
-      },
-      {
-        "name": "offset",
-        "type": "int",
-        "description": "The offset to use when starting to consume messages"
+        "name": "partition",
+        "type": "int"
       }
     ]
-  },
-  "output": [
-    {
-      "name": "message",
-      "type": "string",
-      "description": "The message that was consumed"
-    }
-  ]
+  }
 }
