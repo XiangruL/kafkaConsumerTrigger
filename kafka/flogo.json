@@ -1,7 +1,7 @@
 {
-  "name": "flogo-kafka-consumer",
+  "name": "flogo-kafka",
   "type": "flogo:trigger",
-  "version": "1.0.0",
+  "version": "0.9.0",
   "title": "Receive Kafka Messages",
   "author": "Wendell Nichols <wnichols@tibco.com>",
   "description": "Simple Kafka Trigger",
