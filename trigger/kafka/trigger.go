@@ -89,9 +89,6 @@ func (t *kafkaTrigger) Start() error {
 		t.topicToActionId[tTopic] = handlerCfg.ActionId
 		conf2 := kafka.NewConsumerConf(tTopic, tPartition)
 		offset, err := strconv.ParseInt(handlerCfg.GetSetting("offset"), 10, 64)
-		if err == nil {
-			conf2.StartOffset = int64(offset)
-		}
 		log.Infof("subscribing to topic [%s]", tTopic)
 		Consumer, err := broker.Consumer(conf2)
 		if err != nil {
