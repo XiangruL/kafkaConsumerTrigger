@@ -6,6 +6,7 @@
   "title": "Receive Kafka Messages",
   "author": "Xiangru Liang <xliang@wayfair.com>",
   "description": "Simple Kafka Trigger",
+  "homepage": "https://github.com/XiangruL/kafkaConsumerTrigger/tree/master/trigger/kafka",
   "settings": [
     {
       "name": "brokerUrls",
