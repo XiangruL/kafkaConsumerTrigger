@@ -88,7 +88,7 @@ func (t *kafkaTrigger) Start() error {
 		log.Infof("Regestering Action [%s] for topic [%s], partition [%d]", handlerCfg.ActionId, tTopic, tPartition)
 		t.topicToActionId[tTopic] = handlerCfg.ActionId
 		conf2 := kafka.NewConsumerConf(tTopic, tPartition)
-		conf2.StartOffset = handlerCfg.GetSetting("offset")
+		conf2.StartOffset = strconv.ParseInt(handlerCfg.GetSetting("offset"), 10, 32)
 		log.Infof("subscribing to topic [%s]", tTopic)
 		Consumer, err := broker.Consumer(conf2)
 		if err != nil {
