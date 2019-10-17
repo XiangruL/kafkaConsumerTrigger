@@ -4,7 +4,7 @@
   "version": "1.0.0",
   "title": "Receive Kafka Messages",
   "ref": "github.com/XiangruL/kafkaConsumerTrigger/trigger/kafka",
-  "author": "Wendell Nichols <wnichols@tibco.com>",
+  "author": "Xiangru Liang <XiangruL@buffalo.com>",
   "description": "Simple Kafka Trigger",
   "homepage": "https://github.com/XiangruL/kafkaConsumerTrigger/tree/master/trigger/kafka",
   "settings": [
