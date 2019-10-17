@@ -1,7 +1,6 @@
 {
   "name": "flogo-kafka-consumer",
   "type": "flogo:trigger",
-  "ref": "github.com/project-flogo/contrib/trigger/kafka",
   "version": "1.0.0",
   "title": "Receive Kafka Messages",
   "author": "Wendell Nichols <wnichols@tibco.com>",
