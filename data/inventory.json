@@ -1,0 +1,163 @@
+[
+  {
+    "_comment": "baywise-01",
+    "item_number": "HCD1033.807695",
+    "actual_qty": 10,
+    "wh_id": "05",
+    "location_id": "P12010101"
+  },
+  {
+    "_comment": "baywise-01",
+    "item_number": "HCD1033.807695",
+    "actual_qty": 10,
+    "wh_id": "05",
+    "location_id": "P12010102"
+  },
+  {
+    "_comment": "baywise-02",
+    "item_number": "HCD1032.818540",
+    "actual_qty": 8,
+    "wh_id": "05",
+    "location_id": "P12010901"
+  },
+  {
+    "_comment": "baywise-02",
+    "item_number": "LMS2959.12972452",
+    "actual_qty": 2,
+    "wh_id": "05",
+    "location_id": "P12010902"
+  },
+  {
+    "_comment": "baywise-02",
+    "item_number": "CVV4918.15115829",
+    "actual_qty": 4,
+    "wh_id": "05",
+    "location_id": "P12010902"
+  },
+  {
+    "_comment": "backforth-01",
+    "item_number": "OXO1773.10670481",
+    "actual_qty": 2,
+    "wh_id": "05",
+    "location_id": "B11110101"
+  },
+  {
+    "_comment": "backforth-01",
+    "item_number": "DLT1495.802460",
+    "actual_qty": 3,
+    "wh_id": "05",
+    "location_id": "B11110101"
+  },
+  {
+    "_comment": "backforth-01",
+    "item_number": "VQM2046.1028938",
+    "actual_qty": 1,
+    "wh_id": "05",
+    "location_id": "B12120101"
+  },
+  {
+    "_comment": "backforth-02",
+    "item_number": "AMRA2044.8411389",
+    "actual_qty": 1,
+    "wh_id": "05",
+    "location_id": "B11110402"
+  },
+  {
+    "_comment": "backforth-02",
+    "item_number": "CAHF1523.21558301",
+    "actual_qty": 3,
+    "wh_id": "05",
+    "location_id": "B11110402"
+  },
+  {
+    "_comment": "backforth-02",
+    "item_number": "BI107681.30176102",
+    "actual_qty": 8,
+    "wh_id": "05",
+    "location_id": "B11110402"
+  },
+  {
+    "_comment": "backforth-02",
+    "item_number": "SOY9035.12472114",
+    "actual_qty": 1,
+    "wh_id": "05",
+    "location_id": "B12120402"
+  },
+  {
+    "_comment": "backforth-02",
+    "item_number": "CNX1231.803027",
+    "actual_qty": 3,
+    "wh_id": "05",
+    "location_id": "B12120402"
+  },
+  {
+    "_comment": "regular-01",
+    "item_number": "TXR1982.6397030-2",
+    "actual_qty": 1,
+    "wh_id": "05",
+    "location_id": "H60030103"
+  },
+  {
+    "_comment": "regular-02",
+    "item_number": "CHPS1219.23978598",
+    "actual_qty": 7,
+    "wh_id": "05",
+    "location_id": "H60030103"
+  },
+  {
+    "_comment": "regular-03",
+    "item_number": "CHPS1090.17163306",
+    "actual_qty": 10,
+    "wh_id": "05",
+    "location_id": "H60030103"
+  },
+  {
+    "_comment": "regular-04",
+    "item_number": "QPV7175.7312039",
+    "actual_qty": 1,
+    "wh_id": "05",
+    "location_id": "H60050303"
+  },
+  {
+    "_comment": "regular-05",
+    "item_number": "ELU4000.12174522",
+    "actual_qty": 2,
+    "wh_id": "05",
+    "location_id": "H60050303"
+  },
+  {
+    "_comment": "regular-06",
+    "item_number": "ELU4000.12174523",
+    "actual_qty": 4,
+    "wh_id": "05",
+    "location_id": "H60050303"
+  },
+  {
+    "_comment": "regular-07",
+    "item_number": "WLLR1002.8031331",
+    "actual_qty": 4,
+    "wh_id": "05",
+    "location_id": "H60050303"
+  },
+  {
+    "_comment": "regular-08",
+    "item_number": "OI2020.11219937",
+    "actual_qty": 12,
+    "wh_id": "05",
+    "location_id": "H60050303"
+  },
+  {
+    "_comment": "regular-09",
+    "item_number": "HUNT1451.8345688",
+    "actual_qty": 16,
+    "wh_id": "05",
+    "location_id": "H60071101"
+  },
+  {
+    "_comment": "regular-10",
+    "item_number": "GX12654.11135864",
+    "actual_qty": 15,
+    "wh_id": "05",
+    "location_id": "H60091103"
+  }
+]
